@@ -6,10 +6,6 @@
 	position: relative;
 	margin: 0;
 
-	.-bgimg & {
-		margin: 0;
-	}
-
 	&.compat-object-fit {
 		background-position: center center;
 		background-size: cover;
