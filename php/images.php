@@ -154,7 +154,7 @@ function the_img_fit_figure( $image_id, $class, $sizes = '100vw', $fallback = 'r
 }
 
 /**
- * Output Art Directed <picuture> element
+ * Output Art Directed <picture> element
  * @param   $img_start_id
  * @param   $img_end_id
  *
