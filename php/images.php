@@ -154,7 +154,7 @@ function the_img_fit_figure( $image_id, $class, $sizes = '100vw', $fallback = 'r
 }
 
 /**
- * MS Card <picuture> element
+ * Output Art Directed <picuture> element
  * @param   $img_start_id
  * @param   $img_end_id
  *
