@@ -166,19 +166,19 @@ function picture_art_direct( $img_start_id, $img_end_id, $type = 'wide' ) {
 		return;
 	}
 
-	$full_size = 'rwd-rect-lg';
-	$full_fallback = 'rwd-rect-lg';
-	$start_size = 'rwd-sq-md';
-	$start_fallback = 'rwd-sq-lg';
+	$full_size = 'rwd-rect-xl';
+	$full_fallback = 'rwd-rect-xl';
 	$full_sizes = '50vw';
+	$start_size = 'rwd-sq-lg';
+	$start_fallback = 'rwd-sq-lg';
 	$start_sizes = '100vw';
 	$breakpoint = 768;
 
 	if( 'hero' == $type ) {
 		$full_size = 'rwd-port-md';
-		$full_fallback = 'rwd-port-md';
+		$full_fallback = 'rwd-port-xlg';
 		$start_size = 'rwd-port-sm';
-		$start_fallback = 'rwd-port-md';
+		$start_fallback = 'rwd-port-lg';
 		$start_sizes = '100vw';
 
 		$landscape_size = 'rwd-rect-md';
@@ -203,9 +203,9 @@ function picture_art_direct( $img_start_id, $img_end_id, $type = 'wide' ) {
 							media="(min-width: %1$spx)"
 							srcset="%4$s"
 							sizes="%5$s" />
-						<img srcset="%4$s"
-						     alt="%6$s"
-						     sizes="%7$s" data-fallback-img="%8$s" data-fallback-img-sm="%9$s"/>
+						<img srcset="%6$s"
+						     alt="%7$s"
+						     sizes="%8$s" data-fallback-img="%9$s" data-fallback-img-sm="%10$s"/>
 					</picture>',
 			esc_attr( $breakpoint),
 			esc_attr( $landscape_srcset ),
@@ -257,27 +257,68 @@ function picture_art_direct( $img_start_id, $img_end_id, $type = 'wide' ) {
  * @return bool|string
  */
 function get_srcset( $image_id, $desired_img_size ) {
-	$img_srcet = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
 
-	if( empty ( $img_srcset ) ) {
-		preg_match('~-(.*?)-~', $desired_img_size, $output);
+	$img_src = wp_get_attachment_image_src(  $image_id, $desired_img_size );
+	$image_meta = wp_get_attachment_metadata( $image_id );
+
+	preg_match('~-(.*?)-~', $desired_img_size, $output);
+
+	if( empty ( $output[1] ) ) {
+		$image_type = 'pri';
+	} else {
 		$image_type = $output[1];
+	}
+
+	// override falling back to 'pri' image ratios if specific size doesn't exist
+	if( 'sq' === $image_type ) {
+		$size_array = array(
+			400,
+			400
+		);
+	} elseif( 'rect' === $image_type ) {
+		$size_array = array(
+			400,
+			225
+		);
+	} elseif( 'port' === $image_type ) {
+		$size_array = array(
+			225,
+			400
+		);
+	} else {
+		$size_array = array(
+			absint( $img_src[1] ),
+			absint( $img_src[2] )
+		);
+	}
+
+	$img_srcset = wp_calculate_image_srcset( $size_array, $img_src, $image_meta, $image_id );
+
+	// Get largest existing image size by type
+	$img_srcset_raw = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
+
+	if( empty ( $img_srcset_raw ) ) {
+
 		$image_size_array = array(
 			'xxxlg', 'xxlg', 'xlg', 'lg', 'md', 'sm'
 		);
 
 		foreach ( $image_size_array as $size ) {
 			$desired_img_size = 'rwd-' . $image_type . '-' . $size;
-			$img_srcet = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
-			if( ! empty( $img_srcet ) ){
+			$img_srcset_raw  = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
+			if( ! empty( $img_srcset_raw  ) ) {
 				break;
 			}
 		}
 
-		if ( empty ( $img_srcet ) ) {
+		if ( empty ( $img_srcset_raw  ) ) {
 			$desired_img_size = 'full';
-			wp_get_attachment_image_srcset( $image_id, $desired_img_size );
+			$img_srcset_raw  = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
 		}
-		return array( $img_srcet, $desired_img_size);
 	}
+
+	if( empty ($img_srcset ) ) {
+		$img_srcset = $img_srcset_raw;
+	}
+	return array( $img_srcset, $desired_img_size );
 }
