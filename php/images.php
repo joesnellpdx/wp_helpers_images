@@ -101,14 +101,12 @@ function the_rwd_image( $image_id, $echo = true, $sizes = '100vw', $use_link = f
  *
  * @param  int     $image_id    The image attachment ID.
  * @param  string  $class       The image class attribute.
- * @param  string  $sizes       Desired image sizes at breakpoints
- *                              (i.e. (max-width: 1083px) 200vw, 100vw)
- * @param  string  $fallback    The fallback image size.
  * @param  boolean $echo        Whether to echo (true) or return (false)
  *                              Default true.
+ * @param  string  $sizes       The image size.
  * @param  boolean $use_link    Link to attachment when true.
  * @param  boolean $use_caption The image caption.
- *
+ * @param  string  $fallback    The fallback image size.
  * @return void
  */
 function the_img_fit_figure( $image_id, $class, $sizes = '100vw', $fallback = 'rwd-pri-xxlg', $echo = true, $use_link = false, $use_caption = false ) {
@@ -156,7 +154,7 @@ function the_img_fit_figure( $image_id, $class, $sizes = '100vw', $fallback = 'r
 }
 
 /**
- * Output Art Directed <picture> element
+ * MS Card <picuture> element
  * @param   $img_start_id
  * @param   $img_end_id
  *
@@ -168,13 +166,25 @@ function picture_art_direct( $img_start_id, $img_end_id, $type = 'wide' ) {
 		return;
 	}
 
-	$full_size = 'rwd-rect-xl';
-	$full_fallback = 'rwd-rect-xl';
-	$full_sizes = '50vw';
-	$start_size = 'rwd-sq-lg';
+	$full_size = 'rwd-rect-lg';
+	$full_fallback = 'rwd-rect-lg';
+	$start_size = 'rwd-sq-md';
 	$start_fallback = 'rwd-sq-lg';
+	$full_sizes = '50vw';
 	$start_sizes = '100vw';
 	$breakpoint = 768;
+
+	if( 'hero' == $type ) {
+		$full_size = 'rwd-port-md';
+		$full_fallback = 'rwd-port-md';
+		$start_size = 'rwd-port-sm';
+		$start_fallback = 'rwd-port-md';
+		$start_sizes = '100vw';
+
+		$landscape_size = 'rwd-rect-md';
+		$landscape_srcset = get_srcset( $img_start_id, $landscape_size )[0];
+		$landscape_sizes = '100vw';
+	}
 
 	$alt = get_post_meta( $img_end_id, '_wp_attachment_image_alt', true);
 	$img_full_srcset = get_srcset($img_end_id, $full_size )[0];
@@ -182,7 +192,33 @@ function picture_art_direct( $img_start_id, $img_end_id, $type = 'wide' ) {
 	$img_full_src = wp_get_attachment_image_url( $img_end_id, get_srcset($img_end_id, $full_fallback )[1] );
 	$img_start_src = wp_get_attachment_image_url( $img_start_id, get_srcset($img_start_id, $start_fallback )[1] );
 
-	if ( $img_full_srcset && $img_cropped_srcset ) {
+	if ( 'hero' == $type && $img_full_srcset && $img_cropped_srcset ) {
+		$output = sprintf(
+			'<picture class="ms-card__img">
+                        <source
+							media="(max-width: %1$spx) and (orientation: landscape)"
+							srcset="%2$s"
+							sizes="%3$s" />
+						<source
+							media="(min-width: %1$spx)"
+							srcset="%4$s"
+							sizes="%5$s" />
+						<img srcset="%4$s"
+						     alt="%6$s"
+						     sizes="%7$s" data-fallback-img="%8$s" data-fallback-img-sm="%9$s"/>
+					</picture>',
+			esc_attr( $breakpoint),
+			esc_attr( $landscape_srcset ),
+			esc_attr( $landscape_sizes ),
+			esc_attr( $img_full_srcset ),
+			esc_attr( $full_sizes ),
+			esc_attr( $img_cropped_srcset ),
+			esc_attr( $alt ),
+			esc_attr( $start_sizes ),
+			esc_attr( $img_full_src ),
+			esc_attr( $img_start_src )
+		);
+	} else if ( $img_full_srcset && $img_cropped_srcset ) {
 		$output = sprintf(
 			'<picture class="ms-card__img">
 						<source
@@ -221,66 +257,27 @@ function picture_art_direct( $img_start_id, $img_end_id, $type = 'wide' ) {
  * @return bool|string
  */
 function get_srcset( $image_id, $desired_img_size ) {
+	$img_srcet = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
 
-	$img_src = wp_get_attachment_image_src(  $image_id, $desired_img_size );
-	$image_meta = wp_get_attachment_metadata( $image_id );
-
-	preg_match('~-(.*?)-~', $desired_img_size, $output);
-
-	if( empty ( $output[1] ) ) {
-		$image_type = 'pri';
-	} else {
+	if( empty ( $img_srcset ) ) {
+		preg_match('~-(.*?)-~', $desired_img_size, $output);
 		$image_type = $output[1];
-	}
-
-	// override falling back to 'pri' image ratios if specific size doesn't exist
-	if( 'sq' === $image_type ) {
-		$size_array = array(
-			400,
-			400
-		);
-	} elseif( 'rect' === $image_type ) {
-		$size_array = array(
-			400,
-			225
-		);
-	} elseif( 'port' === $image_type ) {
-		$size_array = array(
-			400,
-			711
-		);
-	} else {
-		$size_array = array(
-			absint( $img_src[1] ),
-			absint( $img_src[2] )
-		);
-	}
-
-	$img_srcset = wp_calculate_image_srcset( $size_array, $img_src, $image_meta, $image_id );
-
-	// Get largest existing image size by type
-	$img_srcset_raw = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
-	if( empty ( $img_srcset_raw ) ) {
 		$image_size_array = array(
 			'xxxlg', 'xxlg', 'xlg', 'lg', 'md', 'sm'
 		);
 
 		foreach ( $image_size_array as $size ) {
 			$desired_img_size = 'rwd-' . $image_type . '-' . $size;
-			$img_srcset_raw  = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
-			if( ! empty( $img_srcset_raw  ) ){
+			$img_srcet = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
+			if( ! empty( $img_srcet ) ){
 				break;
 			}
 		}
 
-		if ( empty ( $img_srcset_raw  ) ) {
+		if ( empty ( $img_srcet ) ) {
 			$desired_img_size = 'full';
-			$img_srcset_raw  = wp_get_attachment_image_srcset( $image_id, $desired_img_size );
+			wp_get_attachment_image_srcset( $image_id, $desired_img_size );
 		}
+		return array( $img_srcet, $desired_img_size);
 	}
-
-	if( empty ($img_srcset ) ) {
-		$img_srcset = $img_srcset_raw;
-	}
-	return array( $img_srcset, $desired_img_size );
 }
