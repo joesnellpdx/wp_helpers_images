@@ -101,12 +101,14 @@ function the_rwd_image( $image_id, $echo = true, $sizes = '100vw', $use_link = f
  *
  * @param  int     $image_id    The image attachment ID.
  * @param  string  $class       The image class attribute.
+ * @param  string  $sizes       Desired image sizes at breakpoints
+ *                              (i.e. (max-width: 1083px) 200vw, 100vw)
+ * @param  string  $fallback    The fallback image size.
  * @param  boolean $echo        Whether to echo (true) or return (false)
  *                              Default true.
- * @param  string  $sizes       The image size.
  * @param  boolean $use_link    Link to attachment when true.
  * @param  boolean $use_caption The image caption.
- * @param  string  $fallback    The fallback image size.
+ *
  * @return void
  */
 function the_img_fit_figure( $image_id, $class, $sizes = '100vw', $fallback = 'rwd-pri-xxlg', $echo = true, $use_link = false, $use_caption = false ) {
